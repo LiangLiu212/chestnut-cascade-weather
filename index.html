@@ -3,36 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Chestnut &amp; Cascade Weather</title>
-<meta name="description" content="Live ski weather for Chestnut Mountain (Galena, IL) and Cascade Mountain (Portage, WI): current conditions, snowmaking windows, 48 hour and 10 day forecasts.">
+<title>Ski Weather Monitor</title>
+<meta name="description" content="Live ski weather for Chestnut Mountain (Galena, IL), Cascade Mountain (Portage, WI) and Devil's Head (Merrimac, WI): current conditions, snowmaking windows, 48 hour and 10 day forecasts.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
-/* Layout: a two mountain dashboard. Summary first (the two resort cards side by side),
-   then two shared time charts (next 48 hours with aligned snowmaking and precipitation
-   strips, next 10 days as paired temperature ranges), then the daily lists.
-   Everything stacks to one column below 720px. */
+/* Layout: a dashboard for a handful of ski hills. Summary first (one card per resort, side by side
+   on wide screens), then two shared time charts (next 48 hours with aligned snowmaking and
+   precipitation tracks, next 10 days as grouped temperature ranges), then the daily lists.
+   Everything stacks to one column below 1080px. */
 :root{
   color-scheme:light;
-  /* Color: cool snowfield neutrals with a blue bias; resort series colors are the only strong hues */
+  /* Color: cool snowfield neutrals with a blue bias; the resort colors are the only strong hues */
   --bg:#eef2f6;
   --surface:#ffffff;
   --surface-2:#e5ebf1;
   --ink:#15202b;
   --ink-2:#4a5866;
-  --muted:#7d8994;
+  --muted:#6b7783;
   --line:#d4dce4;
   --grid:#e6ecf1;
   --night:rgba(21,32,43,.06);
   --shadow:0 1px 2px rgba(21,32,43,.05),0 10px 28px -18px rgba(21,32,43,.28);
-  --chestnut:#eb6834;   /* series 1: Chestnut Mountain */
-  --cascade:#2a78d6;    /* series 2: Cascade Mountain */
-  --snow:#2a78d6;       /* precip strip: snow */
-  --rain:#8a949d;       /* precip strip: rain */
-  --freeze:#6250d6;     /* precip strip: freezing rain or drizzle */
-  --good:#0ca30c;       /* status: good snowmaking */
-  --warn:#fab219;       /* status: marginal snowmaking */
+  --chestnut:#eb6834;   /* resort 1: Chestnut Mountain */
+  --cascade:#2a78d6;    /* resort 2: Cascade Mountain */
+  --devils:#17a273;     /* resort 3: Devil's Head */
+  --rain:#8a949d;       /* precipitation track: rain (snow uses the resort color) */
+  --good:#0ca30c;       /* status chip: good snowmaking */
+  --warn:#fab219;       /* status chip: marginal snowmaking */
   --on-warn:#15202b;
   --danger:#d03b3b;
   /* Type: condensed display face for names and the big temperature, a hyperlegible sans for everything else */
@@ -47,7 +46,7 @@
     --bg:#0f151b; --surface:#182028; --surface-2:#232d37;
     --ink:#eef2f6; --ink-2:#b7c1cb; --muted:#8a96a2;
     --line:#2b3641; --grid:#26303a; --night:rgba(255,255,255,.045); --shadow:none;
-    --chestnut:#d95926; --cascade:#3987e5; --snow:#3987e5; --rain:#8a949d; --freeze:#9085e9;
+    --chestnut:#d95926; --cascade:#3987e5; --devils:#199e70; --rain:#8a949d;
   }
 }
 *{box-sizing:border-box}
@@ -64,12 +63,11 @@ body{
 a{color:inherit}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--cascade);outline-offset:2px}
-.wrap{max-width:1120px;margin:0 auto;display:grid;gap:18px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:18px}
 
 /* Header */
 .top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 24px}
 h1{font-family:var(--font-display);font-weight:800;font-size:var(--fs-h1);line-height:.95;margin:0;letter-spacing:.005em;text-wrap:balance}
-h1 .amp{color:var(--muted);font-weight:600}
 .sub{margin:6px 0 0;color:var(--ink-2);font-size:var(--fs-sm)}
 .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .status{color:var(--muted);font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
@@ -87,15 +85,12 @@ h1 .amp{color:var(--muted);font-weight:600}
 
 /* Cards */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
-.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-@media (max-width:720px){.cards{grid-template-columns:1fr}}
-.resort{padding:16px 20px 16px;display:grid;gap:14px;min-width:0;border-top:4px solid var(--c)}
-.resort-head{display:flex;justify-content:space-between;gap:10px 16px;align-items:flex-start;flex-wrap:wrap}
+.cards{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:18px}
+.resort{padding:16px 20px 16px;display:grid;gap:14px;align-content:start;min-width:0;border-top:4px solid var(--c);container:resort / inline-size}
 .resort h2{font-family:var(--font-display);font-size:var(--fs-xl);font-weight:700;margin:0;line-height:1.05;letter-spacing:.01em}
 .place{color:var(--ink-2);font-size:var(--fs-sm)}
-.facts{color:var(--muted);font-size:var(--fs-xs);text-align:right;max-width:52%;line-height:1.45}
-@media (max-width:720px){.facts{text-align:left;max-width:none}}
-.now{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.facts{color:var(--muted);font-size:var(--fs-xs);line-height:1.45;margin-top:2px}
+.now{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap}
 .temp{display:flex;align-items:flex-start;font-family:var(--font-display);font-weight:700;line-height:.9}
 .temp .big{font-size:var(--fs-hero);letter-spacing:-.01em}
 .temp .unit{font-size:1.5rem;margin-top:.4rem;color:var(--ink-2);font-weight:600}
@@ -104,13 +99,14 @@ h1 .amp{color:var(--muted);font-weight:600}
 .cond-text{font-size:var(--fs-lg);font-weight:700}
 .feels{color:var(--ink-2);font-size:var(--fs-sm)}
 .unavail{color:var(--muted);font-size:var(--fs-sm)}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px 14px;margin:0;padding-top:12px;border-top:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin:0;padding-top:12px;border-top:1px solid var(--line)}
+@container resort (min-width:520px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .stats div{min-width:0}
 .stats dt{font-size:var(--fs-xs);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .stats dd{margin:2px 0 0;font-variant-numeric:tabular-nums}
 .muted{color:var(--muted)}
 .stats dd .muted{font-size:var(--fs-sm)}
-.snowmaking{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:var(--r-sm);background:var(--surface-2);font-size:var(--fs-sm)}
+.snowmaking{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:10px 12px;border-radius:var(--r-sm);background:var(--surface-2);font-size:var(--fs-sm)}
 .snowmaking span:last-child{min-width:0}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-weight:700;font-size:var(--fs-xs);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
 .chip.good{background:var(--good);color:#fff}
@@ -128,21 +124,21 @@ h1 .amp{color:var(--muted);font-weight:600}
 .chart-head h2{font-family:var(--font-display);font-size:var(--fs-xl);font-weight:700;margin:0;letter-spacing:.01em}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:var(--fs-xs);color:var(--ink-2)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .hint{color:var(--muted)}
 .sw{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
 .sw.line{height:3px;width:16px}
 .sw.dash{width:16px;height:0;border-top:2px dashed var(--muted);border-radius:0;background:none}
 .chart{position:relative;min-width:0}
-.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
 .chart text{font-family:var(--font-body)}
 .ax{font-size:11px;fill:var(--muted)}
 .ax-day{font-size:11px;fill:var(--ink-2);font-weight:700}
 .cap{font-size:11px;fill:var(--ink-2)}
-.ref{font-size:10.5px;fill:var(--muted)}
+.cap-t{font-weight:700}
 .endlab{font-size:11.5px;fill:var(--ink-2);font-weight:700}
-.bar{cursor:default}
-.tip{position:absolute;top:0;left:0;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:8px 10px;font-size:var(--fs-xs);line-height:1.45;min-width:170px;z-index:2;font-variant-numeric:tabular-nums}
+.tip{position:absolute;top:0;left:0;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:8px 10px;font-size:var(--fs-xs);line-height:1.45;min-width:170px;z-index:2;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tip b{font-weight:700}
-.tip .row{display:flex;justify-content:space-between;gap:12px}
+.tip .row{display:flex;justify-content:space-between;gap:14px}
 .tip .nm{display:inline-flex;align-items:center;gap:6px}
 .tip .sub-row{color:var(--ink-2);justify-content:flex-end}
 .table-wrap{margin-top:10px;font-size:var(--fs-sm)}
@@ -153,31 +149,30 @@ th,td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--grid);white
 th:first-child,td:first-child{text-align:left}
 th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.05em}
 
-/* Daily lists */
-.daily-lists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 28px;margin-top:16px}
-@media (max-width:860px){.daily-lists{grid-template-columns:1fr}}
-.dl{min-width:0}
+/* Daily lists: compact two line rows by default, full columns when the list itself is wide */
+.daily-lists{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:18px 28px;margin-top:16px}
+.dl{min-width:0;container:daylist / inline-size}
 .dl h3{font-family:var(--font-display);font-size:var(--fs-lg);font-weight:700;margin:0 0 4px;display:flex;align-items:center;gap:8px;letter-spacing:.01em}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--c);display:inline-block;flex:none}
-.drow{display:grid;grid-template-columns:26px 62px minmax(0,1fr) 78px 52px 58px 48px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--grid);font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.drow{display:grid;grid-template-columns:24px 58px minmax(0,1fr) 74px;gap:2px 8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--grid);font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
 .drow.head{color:var(--muted);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.05em;border-bottom-color:var(--line);white-space:nowrap}
 .drow svg{width:22px;height:22px;color:var(--ink-2)}
 .drow .cond-s{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.drow .cond-extra{display:none}
 .drow .num{text-align:right}
 .drow .hi{font-weight:700}
 .drow .lo{color:var(--ink-2)}
-@media (max-width:560px){
-  .drow{grid-template-columns:24px 56px minmax(0,1fr) 74px}
-  .drow .precip,.drow .snow,.drow .gust{display:none}
-  .drow .cond-s{white-space:normal}
-  .drow .cond-extra{display:block;color:var(--muted);font-size:var(--fs-xs)}
+.drow .precip,.drow .snow,.drow .gust{display:none}
+.drow .extra{grid-column:2 / -1;color:var(--muted);font-size:var(--fs-xs)}
+@container daylist (min-width:470px){
+  .drow{grid-template-columns:26px 62px minmax(0,1fr) 78px 52px 58px 48px;gap:8px}
+  .drow .precip,.drow .snow,.drow .gust{display:block}
+  .drow .extra{display:none}
 }
+@media (max-width:1079px){.cards,.daily-lists{grid-template-columns:1fr}}
 
 .foot{color:var(--muted);font-size:var(--fs-xs);line-height:1.55;max-width:78ch}
 .foot p{margin:0 0 6px}
 .foot a{color:var(--ink-2)}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -204,8 +199,8 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>Chestnut <span class="amp">&amp;</span> Cascade</h1>
-      <p class="sub">Ski weather for Galena, Illinois and Portage, Wisconsin</p>
+      <h1>Ski Weather Monitor</h1>
+      <p class="sub" id="sub">Chestnut Mountain · Cascade Mountain · Devil's Head</p>
     </div>
     <div class="controls">
       <span id="status" class="status" aria-live="polite">Loading forecast</span>
@@ -224,17 +219,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
   <section class="card chart-card" aria-labelledby="h48">
     <div class="chart-head">
       <h2 id="h48">Next 48 hours</h2>
-      <div class="legend" id="legend48">
-        <span><i class="sw line" style="background:var(--chestnut)"></i>Chestnut</span>
-        <span><i class="sw line" style="background:var(--cascade)"></i>Cascade</span>
-        <span><i class="sw" style="background:var(--good)"></i>Good snowmaking</span>
-        <span><i class="sw" style="background:var(--warn)"></i>Marginal</span>
-        <span><i class="sw" style="background:var(--snow)"></i>Snow</span>
-        <span><i class="sw" style="background:var(--rain)"></i>Rain</span>
-        <span><i class="sw" style="background:var(--freeze)"></i>Freezing</span>
-        <span><i class="sw" style="background:var(--night);border:1px solid var(--line)"></i>Night</span>
-        <span><i class="sw dash"></i><span id="ref28">28° snowmaking line</span></span>
-      </div>
+      <div class="legend" id="legend48"></div>
     </div>
     <div class="chart" id="hourly"></div>
     <details class="table-wrap">
@@ -246,11 +231,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
   <section class="card chart-card" aria-labelledby="h10">
     <div class="chart-head">
       <h2 id="h10">Next 10 days</h2>
-      <div class="legend">
-        <span><i class="sw" style="background:var(--chestnut)"></i>Chestnut high to low</span>
-        <span><i class="sw" style="background:var(--cascade)"></i>Cascade high to low</span>
-        <span><i class="sw dash"></i><span id="ref32">32° freezing</span></span>
-      </div>
+      <div class="legend" id="legend10"></div>
     </div>
     <div class="chart" id="daily"></div>
     <div class="daily-lists" id="dailyLists"></div>
@@ -258,7 +239,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
 
   <footer class="foot">
     <p>Forecast data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> for each resort's coordinates, refreshed every 15 minutes while this page is open. The snowmaking window uses the wet bulb temperature estimated from forecast temperature and humidity (Stull's approximation): at or below 28°F counts as marginal and at or below 20°F as good, which is roughly when resorts can run their guns.</p>
-    <p>Resort facts and season notes as of Nov 8, 2026. Check each resort's snow report before you drive.</p>
+    <p>Resort facts and season notes as of Nov 10, 2026. Check each resort's snow report before you drive.</p>
   </footer>
 </div>
 
@@ -266,11 +247,12 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
 (function () {
   'use strict';
 
+  /* To add a mountain: append an entry here and add a matching color token in the CSS above. */
   var RESORTS = [
     {
       id: 'chestnut', name: 'Chestnut Mountain', short: 'Chestnut', place: 'Galena, Illinois',
-      lat: 42.3828, lon: -90.3828, color: 'var(--chestnut)',
-      facts: '475 ft vertical · 19 runs · 10 lifts · 139 acres · summit 1,040 ft',
+      lat: 42.3190, lon: -90.3938, color: 'var(--chestnut)',
+      facts: '475 ft vertical · 19 trails · 9 lifts · 220 acres',
       links: [
         ['Weather', 'https://www.chestnutmtn.com/weather/'],
         ['Live cams', 'https://www.chestnutmtn.com/live-cameras/'],
@@ -282,7 +264,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
     {
       id: 'cascade', name: 'Cascade Mountain', short: 'Cascade', place: 'Portage, Wisconsin',
       lat: 43.5039, lon: -89.5180, color: 'var(--cascade)',
-      facts: '450 ft vertical · 48 trails · 11 lifts · 175 acres · summit 1,270 ft',
+      facts: '450 ft vertical · 48 trails · 11 lifts · 175 acres',
       links: [
         ['Snow report', 'https://www.cascademountain.com/snow-report/'],
         ['Weather', 'https://www.cascademountain.com/weather/'],
@@ -291,6 +273,19 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
         ['Lift tickets', 'https://www.cascademountain.com/lift-tickets/']
       ],
       note: 'Season: not yet open for 2026/27, tentative opening Nov 28.'
+    },
+    {
+      id: 'devils', name: "Devil's Head", short: "Devil's Head", place: 'Merrimac, Wisconsin',
+      lat: 43.4217, lon: -89.6279, color: 'var(--devils)',
+      facts: '500 ft vertical · 30 trails · 8 lifts · 300 acres',
+      links: [
+        ['Snow report', 'https://www.devilsheadresort.com/ski-resort-mountain-sauk-merrimac-wi-wisconsin/snow-report/'],
+        ['Snow cams', 'https://www.devilsheadresort.com/photos-pictures-video-golf-ski-resort-sauk-merrimac-wi-wisconsin/'],
+        ['Trail map', 'https://www.devilsheadresort.com/ski-resort-mountain-sauk-merrimac-wi-wisconsin/trail-map/'],
+        ['Lift tickets', 'https://www.devilsheadresort.com/ski-resort-mountain-sauk-merrimac-wi-wisconsin/lift-tickets/'],
+        ['Website', 'https://www.devilsheadresort.com/']
+      ],
+      note: 'Season: not yet open for 2026/27, opening date not posted.'
     }
   ];
 
@@ -299,14 +294,17 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
   var HOURLY = ['temperature_2m', 'relative_humidity_2m', 'apparent_temperature', 'precipitation_probability', 'precipitation', 'snowfall', 'weather_code', 'wind_speed_10m', 'wind_gusts_10m', 'wind_direction_10m', 'is_day'];
   var DAILY = ['weather_code', 'temperature_2m_max', 'temperature_2m_min', 'precipitation_probability_max', 'precipitation_sum', 'snowfall_sum', 'wind_gusts_10m_max', 'sunrise', 'sunset'];
   var CURRENT = ['temperature_2m', 'relative_humidity_2m', 'apparent_temperature', 'is_day', 'weather_code', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m', 'precipitation'];
-  var CACHE_KEY = 'cc-weather-v1';
+  var CACHE_KEY = 'ski-weather-v2';
+  var OLD_CACHE_KEY = 'cc-weather-v1';
   var UNIT_KEY = 'cc-weather-unit';
+  var SIG = RESORTS.map(function (r) { return r.id + '@' + r.lat + ',' + r.lon; }).join('|');
   var REFRESH_MS = 15 * 60 * 1000;
 
   var state = { unit: 'F', data: null, fetchedAt: null, stale: false, derived: null };
 
   function $(sel, el) { return (el || document).querySelector(sel); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function f1(v) { return v.toFixed(1); }
 
   function apiUrl(r) {
     var p = new URLSearchParams({
@@ -321,6 +319,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
   /* Units. Everything is computed in °F; U converts for display. */
   function U(f) { return state.unit === 'F' ? f : (f - 32) * 5 / 9; }
   function deg(f, d) {
+    if (f == null || isNaN(f)) return 'n/a';
     var s = U(f).toFixed(d || 0);
     if (s === '-0') s = '0';
     return s + '°';
@@ -361,7 +360,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
     return 'i-' + kind;
   }
   function icon(kind, isDay) { return '<svg aria-hidden="true"><use href="#' + iconId(kind, isDay) + '"/></svg>'; }
-  var PTYPE_LABEL = { snow: 'snow', rain: 'rain', freeze: 'freezing' };
+  var PTYPE_LABEL = { snow: 'snow', rain: 'rain', freeze: 'freezing rain' };
 
   /* Time helpers. Times from the API are local to the resorts (Central), so read the strings directly. */
   var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -376,11 +375,10 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
   var COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   function compass(d) { return COMPASS[Math.round((((d % 360) + 360) % 360) / 22.5) % 16]; }
 
-  /* Derived hourly series for one resort */
-  function derive(json) {
-    var h = json.hourly, cur = json.current;
-    var key = cur.time.slice(0, 13) + ':00';
-    var start = h.time.indexOf(key);
+  /* Derived hourly series for one resort. startKey keeps every resort on the same first hour. */
+  function derive(json, startKey) {
+    var h = json.hourly;
+    var start = h.time.indexOf(startKey);
     if (start < 0) start = 0;
     var rows = h.time.map(function (t, i) {
       var temp = h.temperature_2m[i], rh = h.relative_humidity_2m[i];
@@ -399,6 +397,10 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
     week.forEach(function (r) { if (r.sm !== 'none') { smHours++; if (!firstWindow) firstWindow = r; } if (r.sm === 'good') goodHours++; });
     return { start: start, rows: rows, next48: next48, week: week, smHours: smHours, goodHours: goodHours, firstWindow: firstWindow };
   }
+  function deriveAll(data) {
+    var startKey = data[0].current.time.slice(0, 13) + ':00';
+    return data.map(function (j) { return derive(j, startKey); });
+  }
 
   /* Resort cards */
   function renderCards() {
@@ -409,7 +411,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
       var art = document.createElement('article');
       art.className = 'card resort';
       art.style.setProperty('--c', r.color);
-      var html = '<header class="resort-head"><div><h2>' + esc(r.name) + '</h2><div class="place">' + esc(r.place) + '</div></div>'
+      var html = '<header class="resort-head"><h2>' + esc(r.name) + '</h2><div class="place">' + esc(r.place) + '</div>'
         + '<div class="facts">' + esc(r.facts) + '</div></header>';
       if (json) {
         var d = state.derived[ri], c = json.current, dy = json.daily;
@@ -421,7 +423,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
         html += '<div class="now">'
           + '<div class="temp"><span class="big">' + Math.round(U(c.temperature_2m)) + '</span><span class="unit">' + unitLabel() + '</span></div>'
           + '<div class="cond">' + icon(w[1], isDay) + '<div><div class="cond-text">' + esc(w[0]) + '</div>'
-          + '<div class="feels">Feels like ' + deg(c.apparent_temperature) + ' · ' + (isDay ? 'daytime' : 'night') + '</div></div></div>'
+          + '<div class="feels">Feels like ' + deg(c.apparent_temperature) + '</div></div></div>'
           + '</div>'
           + '<dl class="stats">'
           + '<div><dt>Wind</dt><dd>' + compass(c.wind_direction_10m) + ' ' + Math.round(c.wind_speed_10m) + ' mph <span class="muted">gusts ' + Math.round(c.wind_gusts_10m) + '</span></dd></div>'
@@ -445,6 +447,20 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
     });
   }
 
+  /* Legends are built from the resort list so they can never drift from the charts */
+  function renderLegends() {
+    $('#legend48').innerHTML = RESORTS.map(function (r) {
+      return '<span><i class="sw line" style="background:' + r.color + '"></i>' + esc(r.short) + '</span>';
+    }).join('')
+      + '<span><i class="sw" style="background:var(--night);border:1px solid var(--line)"></i>Night</span>'
+      + '<span><i class="sw dash"></i>' + deg(28) + ' snowmaking line</span>';
+    $('#legend10').innerHTML = RESORTS.map(function (r) {
+      return '<span><i class="sw" style="background:' + r.color + '"></i>' + esc(r.short) + '</span>';
+    }).join('')
+      + '<span><i class="sw dash"></i>' + deg(32) + ' freezing</span>'
+      + '<span class="hint">Bars span each day\'s low to high</span>';
+  }
+
   /* Shared chart math */
   function niceDomain(vals) {
     var step = state.unit === 'F' ? 10 : 5;
@@ -453,150 +469,205 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
     if (hi - lo < 2 * step) hi = lo + 2 * step;
     return { lo: lo, hi: hi, step: step };
   }
-  function hideTip(host) { var t = $('.tip', host); if (t) t.hidden = true; }
-  function placeTip(host, tip, px, py, W) {
+  /* Tooltip goes to the right of xr, or to the left of xl when it would run off the chart */
+  function placeTip(tip, xl, xr, py, wc) {
     tip.hidden = false;
     var tw = tip.offsetWidth;
-    var left = px + 12;
-    if (left + tw > W - 2) left = px - 12 - tw;
-    if (left < 0) left = 0;
+    var left = xr + 12;
+    if (left + tw > wc - 2) left = xl - 12 - tw;
+    if (left < 0) left = Math.max(0, Math.min(wc - tw, xr + 12));
     tip.style.left = left + 'px';
     tip.style.top = Math.max(0, py) + 'px';
   }
+  /* Spread labels that would overlap, keeping each group centered on its own values */
+  function spreadLabels(items, minGap, top, bot) {
+    var sorted = items.slice().sort(function (a, b) { return a.y - b.y; });
+    var clusters = sorted.map(function (e) { return { items: [e], c: e.y }; });
+    var merged = true;
+    while (merged) {
+      merged = false;
+      for (var i = 0; i < clusters.length - 1; i++) {
+        var a = clusters[i], b = clusters[i + 1];
+        var aBot = a.c + (a.items.length - 1) * minGap / 2, bTop = b.c - (b.items.length - 1) * minGap / 2;
+        if (bTop - aBot < minGap) {
+          var its = a.items.concat(b.items);
+          var c = its.reduce(function (s, e) { return s + e.y; }, 0) / its.length;
+          clusters.splice(i, 2, { items: its, c: c });
+          merged = true;
+          break;
+        }
+      }
+    }
+    clusters.forEach(function (cl) {
+      var span = (cl.items.length - 1) * minGap;
+      var t = Math.max(top, Math.min(bot - span, cl.c - span / 2));
+      cl.items.forEach(function (e, i) { e.ly = t + i * minGap; });
+    });
+  }
 
-  /* Next 48 hours */
+  /* Next 48 hours: temperature lines, then one track per resort for snowmaking and for precipitation */
   function renderHourly(force) {
     var host = $('#hourly');
-    if (!state.data) { host.innerHTML = ''; return; }
-    var W = Math.max(320, Math.floor(host.clientWidth));
+    if (!state.data) { host.innerHTML = ''; host.dataset.w = ''; return; }
+    var W = Math.max(280, Math.floor(host.clientWidth));
     if (!force && host.dataset.w === String(W) && host.dataset.unit === state.unit) return;
     host.dataset.w = W; host.dataset.unit = state.unit;
 
     var ser = state.derived.map(function (d) { return d.next48; });
-    var n = ser[0].length;
-    var mL = 44, mR = 78, mT = 12, plotH = 190, axisH = 26, stripCap = 16, stripH = 12, stripGap = 10;
-    var stripsH = 4 * (stripCap + stripH + stripGap);
-    var H = mT + plotH + axisH + stripsH;
+    var R = RESORTS.length;
+    var n = Math.min.apply(null, ser.map(function (s) { return s.length; }));
+    var wide = W >= 560;
+    var mL = 88, mR = wide ? 92 : 12, mT = 12, plotH = 190, axisH = 28;
+    var capH = wide ? 18 : 32, rowH = 14, rowGap = 5, blockGap = 8;
+    var blockH = capH + R * (rowH + rowGap);
+    var H = mT + plotH + axisH + 2 * blockH + blockGap;
     var plotW = W - mL - mR, dx = plotW / (n - 1);
     function x(i) { return mL + i * dx; }
     var vals = [U(28)];
-    ser.forEach(function (s) { s.forEach(function (r) { vals.push(U(r.temp)); }); });
+    ser.forEach(function (s) { for (var i = 0; i < n; i++) vals.push(U(s[i].temp)); });
     var dom = niceDomain(vals);
     function y(v) { return mT + (dom.hi - v) / (dom.hi - dom.lo) * plotH; }
 
-    var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Temperature, snowmaking window and precipitation chance for both resorts over the next 48 hours">';
+    var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Temperature, snowmaking window and precipitation chance for each resort over the next 48 hours">';
 
-    // night shading (from Chestnut's day flag; both are on Central time)
+    // night shading (from the first resort's day flag; all are on Central time)
     var A = ser[0], i = 0;
     while (i < n) {
       if (!A[i].isDay) {
         var j = i;
         while (j + 1 < n && !A[j + 1].isDay) j++;
         var x0 = Math.max(mL, x(i) - dx / 2), x1 = Math.min(W - mR, x(j) + dx / 2);
-        svg += '<rect x="' + x0.toFixed(1) + '" y="' + mT + '" width="' + (x1 - x0).toFixed(1) + '" height="' + plotH + '" fill="var(--night)"/>';
+        svg += '<rect x="' + f1(x0) + '" y="' + mT + '" width="' + f1(x1 - x0) + '" height="' + plotH + '" fill="var(--night)"/>';
         i = j + 1;
       } else i++;
     }
     // grid and y labels
     for (var v = dom.lo; v <= dom.hi; v += dom.step) {
-      var yy = y(v).toFixed(1);
-      svg += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--grid)"/>'
-        + '<text class="ax" x="' + (mL - 8) + '" y="' + (+yy + 4).toFixed(1) + '" text-anchor="end">' + v + '°</text>';
+      var yy = y(v);
+      svg += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + f1(yy) + '" y2="' + f1(yy) + '" stroke="var(--grid)"/>'
+        + '<text class="ax" x="' + (mL - 8) + '" y="' + f1(yy + 4) + '" text-anchor="end">' + v + '°</text>';
     }
     // 28°F reference
     var yr = y(U(28));
-    svg += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + yr.toFixed(1) + '" y2="' + yr.toFixed(1) + '" stroke="var(--muted)" stroke-dasharray="3 4"/>';
+    svg += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + f1(yr) + '" y2="' + f1(yr) + '" stroke="var(--muted)" stroke-dasharray="3 4"/>';
     // x axis
-    A.forEach(function (r, k) {
-      var h = hourOf(r.t);
-      if (h % 6 !== 0) return;
-      var xx = x(k).toFixed(1), ty = mT + plotH + 18;
-      if (h === 0) {
-        svg += '<line x1="' + xx + '" x2="' + xx + '" y1="' + mT + '" y2="' + (mT + plotH) + '" stroke="var(--line)"/>'
-          + '<text class="ax-day" x="' + xx + '" y="' + ty + '" text-anchor="middle">' + dow(r.t) + '</text>';
+    for (var k0 = 0; k0 < n; k0++) {
+      var hr = hourOf(A[k0].t);
+      if (hr % 6 !== 0) continue;
+      var xx0 = f1(x(k0)), tyy = mT + plotH + 18;
+      if (hr === 0) {
+        svg += '<line x1="' + xx0 + '" x2="' + xx0 + '" y1="' + mT + '" y2="' + (mT + plotH) + '" stroke="var(--line)"/>'
+          + '<text class="ax-day" x="' + xx0 + '" y="' + tyy + '" text-anchor="middle">' + dow(A[k0].t) + '</text>';
       } else {
-        svg += '<text class="ax" x="' + xx + '" y="' + ty + '" text-anchor="middle">' + fmtHourShort(h) + '</text>';
+        svg += '<text class="ax" x="' + xx0 + '" y="' + tyy + '" text-anchor="middle">' + fmtHourShort(hr) + '</text>';
       }
-    });
+    }
     // lines
     ser.forEach(function (s, k) {
-      var d = s.map(function (r, idx) { return (idx ? 'L' : 'M') + x(idx).toFixed(1) + ' ' + y(U(r.temp)).toFixed(1); }).join('');
+      var d = '';
+      for (var idx = 0; idx < n; idx++) d += (idx ? 'L' : 'M') + f1(x(idx)) + ' ' + f1(y(U(s[idx].temp)));
       svg += '<path d="' + d + '" fill="none" stroke="' + RESORTS[k].color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
     });
-    // end markers and labels
+    // end markers, with direct labels when there is room for them
+    var xe = x(n - 1);
     var ends = ser.map(function (s, k) { return { k: k, y: y(U(s[n - 1].temp)) }; });
-    ends.sort(function (a, b) { return a.y - b.y; });
-    if (ends[1].y - ends[0].y < 14) { var mid = (ends[0].y + ends[1].y) / 2; ends[0].ly = mid - 7; ends[1].ly = mid + 7; }
-    else ends.forEach(function (e) { e.ly = e.y; });
+    if (wide) spreadLabels(ends, 14, mT + 6, mT + plotH - 4);
     ends.forEach(function (e) {
-      svg += '<circle cx="' + x(n - 1).toFixed(1) + '" cy="' + e.y.toFixed(1) + '" r="4" fill="' + RESORTS[e.k].color + '" stroke="var(--surface)" stroke-width="2"/>'
-        + '<text class="endlab" x="' + (x(n - 1) + 9).toFixed(1) + '" y="' + (e.ly + 4).toFixed(1) + '">' + RESORTS[e.k].short + '</text>';
+      var col = RESORTS[e.k].color;
+      if (wide) {
+        svg += '<path d="M' + f1(xe + 5) + ' ' + f1(e.y) + 'L' + f1(xe + 13) + ' ' + f1(e.ly) + '" fill="none" stroke="' + col + '" stroke-width="1.5"/>'
+          + '<text class="endlab" x="' + f1(xe + 17) + '" y="' + f1(e.ly + 4) + '">' + esc(RESORTS[e.k].short) + '</text>';
+      }
+      svg += '<circle cx="' + f1(xe) + '" cy="' + f1(e.y) + '" r="4" fill="' + col + '" stroke="var(--surface)" stroke-width="2"/>';
     });
-    // strips
-    var sy = mT + plotH + axisH;
-    [[0, 'sm'], [0, 'pp'], [1, 'sm'], [1, 'pp']].forEach(function (def) {
-      var k = def[0], type = def[1], s = ser[k], r = RESORTS[k];
-      svg += '<circle cx="' + (mL + 4) + '" cy="' + (sy + 5) + '" r="3.5" fill="' + r.color + '"/>'
-        + '<text class="cap" x="' + (mL + 12) + '" y="' + (sy + 9) + '">' + r.short + ' · ' + (type === 'sm' ? 'snowmaking window (wet bulb)' : 'precipitation chance') + '</text>';
-      var ty = sy + stripCap;
-      s.forEach(function (row, idx) {
-        var cx0 = Math.max(mL, x(idx) - dx / 2 + 0.5), cx1 = Math.min(W - mR, x(idx) + dx / 2 - 0.5);
-        var w = Math.max(1, cx1 - cx0);
-        var fill = 'var(--surface-2)', op = 1;
-        if (type === 'sm') {
-          if (row.sm === 'good') fill = 'var(--good)'; else if (row.sm === 'marginal') fill = 'var(--warn)';
-        } else if (row.pp >= 10) {
-          fill = row.ptype === 'snow' ? 'var(--snow)' : row.ptype === 'freeze' ? 'var(--freeze)' : 'var(--rain)';
-          op = (0.25 + 0.75 * Math.min(1, row.pp / 100)).toFixed(2);
+
+    // tracks: one block per measure, one row per resort, aligned to the time axis above
+    var swatches = RESORTS.map(function (r) { return '<tspan fill="' + r.color + '">■</tspan>'; }).join('');
+    var blocks = [
+      { type: 'sm', title: 'Snowmaking window (wet bulb)',
+        key: wide ? 'tall bar: good (wet bulb ≤ ' + deg(20) + ') · short bar: marginal (≤ ' + deg(28) + ')' : 'tall bar: good · short bar: marginal' },
+      { type: 'pp', title: 'Precipitation chance',
+        key: swatches + '<tspan> snow · </tspan><tspan fill="var(--rain)">■</tspan><tspan> rain · </tspan><tspan fill="var(--ink)">■</tspan><tspan> freezing rain</tspan>' }
+    ];
+    var by = mT + plotH + axisH;
+    blocks.forEach(function (b) {
+      if (wide) {
+        svg += '<text class="cap" x="0" y="' + (by + 11) + '"><tspan class="cap-t">' + b.title + '</tspan><tspan dx="12">' + b.key + '</tspan></text>';
+      } else {
+        svg += '<text class="cap cap-t" x="0" y="' + (by + 11) + '">' + b.title + '</text>'
+          + '<text class="cap" x="0" y="' + (by + 25) + '">' + b.key + '</text>';
+      }
+      var ry = by + capH;
+      ser.forEach(function (s, k) {
+        var col = RESORTS[k].color;
+        svg += '<circle cx="4" cy="' + (ry + rowH / 2) + '" r="3.5" fill="' + col + '"/>'
+          + '<text class="cap" x="12" y="' + (ry + rowH / 2 + 4) + '">' + esc(RESORTS[k].short) + '</text>'
+          + '<rect x="' + mL + '" y="' + ry + '" width="' + f1(plotW) + '" height="' + rowH + '" rx="3" fill="var(--surface-2)"/>';
+        for (var idx = 0; idx < n; idx++) {
+          var row = s[idx], h = 0, fill = col, op = 1;
+          if (b.type === 'sm') {
+            if (row.sm === 'good') h = rowH;
+            else if (row.sm === 'marginal') { h = rowH / 2; op = 0.6; }
+          } else if (row.pp >= 10) {
+            h = Math.max(2, rowH * Math.min(100, row.pp) / 100);
+            fill = row.ptype === 'snow' ? col : row.ptype === 'freeze' ? 'var(--ink)' : 'var(--rain)';
+          }
+          if (!h) continue;
+          var cx0 = Math.max(mL, x(idx) - dx / 2 + 0.5), cx1 = Math.min(W - mR, x(idx) + dx / 2 - 0.5);
+          svg += '<rect x="' + f1(cx0) + '" y="' + f1(ry + rowH - h) + '" width="' + f1(Math.max(1, cx1 - cx0)) + '" height="' + f1(h) + '" rx="1.5" fill="' + fill + '" fill-opacity="' + op + '"/>';
         }
-        svg += '<rect x="' + cx0.toFixed(1) + '" y="' + ty + '" width="' + w.toFixed(1) + '" height="' + stripH + '" rx="2" fill="' + fill + '" fill-opacity="' + op + '"/>';
+        ry += rowH + rowGap;
       });
-      sy += stripCap + stripH + stripGap;
+      by += blockH + blockGap;
     });
+
     // hover layer
-    svg += '<g class="hx" style="display:none"><line class="hx-line" y1="' + mT + '" y2="' + H + '" stroke="var(--ink-2)" stroke-dasharray="2 3"/>'
-      + '<circle class="hx-a" r="5" fill="' + RESORTS[0].color + '" stroke="var(--surface)" stroke-width="2"/>'
-      + '<circle class="hx-b" r="5" fill="' + RESORTS[1].color + '" stroke="var(--surface)" stroke-width="2"/></g>'
-      + '<rect class="hx-hit" x="' + (mL - dx / 2).toFixed(1) + '" y="0" width="' + (plotW + dx).toFixed(1) + '" height="' + H + '" fill="transparent"/>'
+    svg += '<g class="hx" style="display:none"><line class="hx-line" y1="' + mT + '" y2="' + (H - rowGap) + '" stroke="var(--ink-2)" stroke-dasharray="2 3"/>'
+      + RESORTS.map(function (r) { return '<circle class="hx-c" r="5" fill="' + r.color + '" stroke="var(--surface)" stroke-width="2"/>'; }).join('')
+      + '</g>'
+      + '<rect class="hx-hit" x="' + f1(mL - dx / 2) + '" y="0" width="' + f1(plotW + dx) + '" height="' + H + '" fill="transparent"/>'
       + '</svg><div class="tip" hidden></div>';
     host.innerHTML = svg;
 
-    var hit = $('.hx-hit', host), g = $('.hx', host), tip = $('.tip', host);
-    var line = $('.hx-line', host), ca = $('.hx-a', host), cb = $('.hx-b', host);
+    var hit = $('.hx-hit', host), g = $('.hx', host), tip = $('.tip', host), line = $('.hx-line', host);
+    var dots = host.querySelectorAll('.hx-c');
     function show(ev) {
       var rect = host.getBoundingClientRect();
-      var px = ev.clientX - rect.left;
-      var idx = Math.round((px - mL) / dx);
+      var sx = rect.width / W;
+      var idx = Math.round(((ev.clientX - rect.left) / sx - mL) / dx);
       idx = Math.max(0, Math.min(n - 1, idx));
       var xx = x(idx);
       g.style.display = '';
       line.setAttribute('x1', xx); line.setAttribute('x2', xx);
-      ca.setAttribute('cx', xx); ca.setAttribute('cy', y(U(ser[0][idx].temp)));
-      cb.setAttribute('cx', xx); cb.setAttribute('cy', y(U(ser[1][idx].temp)));
+      ser.forEach(function (s, k) { dots[k].setAttribute('cx', xx); dots[k].setAttribute('cy', y(U(s[idx].temp))); });
       var t = ser[0][idx].t;
       var html = '<div><b>' + dow(t) + ' ' + fmtHour(t) + '</b></div>';
       ser.forEach(function (s, k) {
         var r = s[idx];
-        html += '<div class="row"><span class="nm"><i class="sw" style="background:' + RESORTS[k].color + '"></i>' + RESORTS[k].short + '</span>'
+        html += '<div class="row"><span class="nm"><i class="sw" style="background:' + RESORTS[k].color + '"></i>' + esc(RESORTS[k].short) + '</span>'
           + '<span>' + deg(r.temp) + ' · wet bulb ' + deg(r.tw) + '</span></div>'
           + '<div class="row sub-row"><span>' + r.pp + '% chance' + (r.pp >= 10 ? ' of ' + PTYPE_LABEL[r.ptype] : '') + ' · ' + SM_LABEL[r.sm].toLowerCase() + '</span></div>';
       });
       tip.innerHTML = html;
-      placeTip(host, tip, xx, mT, W);
+      placeTip(tip, xx * sx, xx * sx, mT * sx, rect.width);
     }
+    function hide() { g.style.display = 'none'; tip.hidden = true; }
     hit.addEventListener('pointermove', show);
     hit.addEventListener('pointerdown', show);
-    hit.addEventListener('pointerleave', function () { g.style.display = 'none'; tip.hidden = true; });
+    hit.addEventListener('pointerleave', function (ev) { if (ev.pointerType === 'mouse') hide(); });
+    host._hide = hide;
   }
 
   function renderHourlyTable() {
     var tb = $('#htable');
     if (!state.data) { tb.innerHTML = ''; return; }
     var ser = state.derived.map(function (d) { return d.next48; });
+    var n = Math.min.apply(null, ser.map(function (s) { return s.length; }));
     var html = '<thead><tr><th>Time</th>' + RESORTS.map(function (r) {
-      return '<th>' + r.short + ' temp</th><th>' + r.short + ' wet bulb</th><th>' + r.short + ' precip</th>';
+      var s = esc(r.short);
+      return '<th>' + s + ' temp</th><th>' + s + ' wet bulb</th><th>' + s + ' precip</th>';
     }).join('') + '</tr></thead><tbody>';
-    for (var i = 0; i < ser[0].length; i++) {
+    for (var i = 0; i < n; i++) {
       var t = ser[0][i].t;
       html += '<tr><td>' + dow(t) + ' ' + fmtHour(t) + '</td>' + ser.map(function (s) {
         var r = s[i];
@@ -606,65 +677,81 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
     tb.innerHTML = html + '</tbody>';
   }
 
-  /* Next 10 days */
+  /* Next 10 days: one low to high bar per resort per day */
   function renderDaily(force) {
     var host = $('#daily');
-    if (!state.data) { host.innerHTML = ''; return; }
-    var W = Math.max(320, Math.floor(host.clientWidth));
+    if (!state.data) { host.innerHTML = ''; host.dataset.w = ''; return; }
+    var W = Math.max(280, Math.floor(host.clientWidth));
     if (!force && host.dataset.w === String(W) && host.dataset.unit === state.unit) return;
     host.dataset.w = W; host.dataset.unit = state.unit;
 
     var D = state.data.map(function (j) { return j.daily; });
-    var n = Math.min(D[0].time.length, D[1].time.length);
-    var mL = 44, mR = 16, mT = 12, plotH = 190, axisH = 40;
+    var R = RESORTS.length;
+    var n = Math.min.apply(null, D.map(function (d) { return d.time.length; }));
+    for (var q = 0; q < n; q++) {
+      var whole = D.every(function (d) { return d.temperature_2m_max[q] != null && d.temperature_2m_min[q] != null; });
+      if (!whole) { n = q; break; }
+    }
+    if (n < 1) { host.innerHTML = ''; return; }
+    var mL = 44, mR = 12, mT = 12, plotH = 190, axisH = 40;
     var H = mT + plotH + axisH, plotW = W - mL - mR, gw = plotW / n;
     var vals = [U(32)];
     D.forEach(function (d) { for (var i = 0; i < n; i++) { vals.push(U(d.temperature_2m_max[i])); vals.push(U(d.temperature_2m_min[i])); } });
     var dom = niceDomain(vals);
     function y(v) { return mT + (dom.hi - v) / (dom.hi - dom.lo) * plotH; }
-    var bw = Math.min(22, Math.max(6, gw * 0.3)), gap = 3;
+    var gap = 2, pad = Math.max(6, gw * 0.24);
+    var bw = Math.max(3, Math.min(18, (gw - pad - gap * (R - 1)) / R));
+    var groupW = R * bw + (R - 1) * gap;
 
-    var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Daily high and low temperature ranges for both resorts over the next 10 days">';
+    var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Daily low to high temperature ranges for each resort over the next 10 days">'
+      + '<rect class="dband" x="0" y="' + mT + '" width="' + f1(gw) + '" height="' + plotH + '" rx="4" fill="var(--night)" style="display:none"/>';
     for (var v = dom.lo; v <= dom.hi; v += dom.step) {
-      var yy = y(v).toFixed(1);
-      svg += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--grid)"/>'
-        + '<text class="ax" x="' + (mL - 8) + '" y="' + (+yy + 4).toFixed(1) + '" text-anchor="end">' + v + '°</text>';
+      var yy = y(v);
+      svg += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + f1(yy) + '" y2="' + f1(yy) + '" stroke="var(--grid)"/>'
+        + '<text class="ax" x="' + (mL - 8) + '" y="' + f1(yy + 4) + '" text-anchor="end">' + v + '°</text>';
     }
     var yf = y(U(32));
-    svg += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + yf.toFixed(1) + '" y2="' + yf.toFixed(1) + '" stroke="var(--muted)" stroke-dasharray="3 4"/>';
-    for (var d = 0; d < n; d++) {
+    svg += '<line x1="' + mL + '" x2="' + (W - mR) + '" y1="' + f1(yf) + '" y2="' + f1(yf) + '" stroke="var(--muted)" stroke-dasharray="3 4"/>';
+    var d, k;
+    for (d = 0; d < n; d++) {
       var cx = mL + gw * (d + 0.5), t = D[0].time[d];
-      svg += '<text class="' + (d === 0 ? 'ax-day' : 'ax') + '" x="' + cx.toFixed(1) + '" y="' + (mT + plotH + 17) + '" text-anchor="middle">' + dow(t) + '</text>'
-        + '<text class="ax" x="' + cx.toFixed(1) + '" y="' + (mT + plotH + 31) + '" text-anchor="middle">' + mday(t) + '</text>';
-      for (var k = 0; k < 2; k++) {
-        var bx = k === 0 ? cx - gap / 2 - bw : cx + gap / 2;
+      svg += '<text class="' + (d === 0 ? 'ax-day' : 'ax') + '" x="' + f1(cx) + '" y="' + (mT + plotH + 17) + '" text-anchor="middle">' + dow(t) + '</text>'
+        + '<text class="ax" x="' + f1(cx) + '" y="' + (mT + plotH + 31) + '" text-anchor="middle">' + mday(t) + '</text>';
+      for (k = 0; k < R; k++) {
+        var bx = cx - groupW / 2 + k * (bw + gap);
         var yT = y(U(D[k].temperature_2m_max[d])), yB = y(U(D[k].temperature_2m_min[d]));
-        var bh = Math.max(3, yB - yT);
-        svg += '<rect class="bar" data-d="' + d + '" data-k="' + k + '" x="' + bx.toFixed(1) + '" y="' + yT.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="3" fill="' + RESORTS[k].color + '"/>';
+        svg += '<rect x="' + f1(bx) + '" y="' + f1(yT) + '" width="' + f1(bw) + '" height="' + f1(Math.max(3, yB - yT)) + '" rx="' + Math.min(3, bw / 2).toFixed(1) + '" fill="' + RESORTS[k].color + '"/>';
       }
+    }
+    for (d = 0; d < n; d++) {
+      svg += '<rect class="dhit" data-d="' + d + '" x="' + f1(mL + gw * d) + '" y="' + mT + '" width="' + f1(gw) + '" height="' + (plotH + axisH) + '" fill="transparent"/>';
     }
     svg += '</svg><div class="tip" hidden></div>';
     host.innerHTML = svg;
 
-    var tip = $('.tip', host);
+    var el = $('svg', host), tip = $('.tip', host), band = $('.dband', host);
     function show(ev) {
-      var el = ev.target.closest ? ev.target.closest('rect.bar') : null;
-      if (!el) { tip.hidden = true; return; }
-      var d = +el.getAttribute('data-d'), k = +el.getAttribute('data-k'), dy = D[k], w = wx(dy.weather_code[d]);
-      var t = dy.time[d];
-      var snow = dy.snowfall_sum[d] || 0, pp = dy.precipitation_probability_max[d]; if (pp == null) pp = 0;
-      tip.innerHTML = '<div><b>' + RESORTS[k].short + ' · ' + (d === 0 ? 'Today' : dow(t)) + ' ' + mday(t) + '</b></div>'
-        + '<div>' + esc(w[0]) + '</div>'
-        + '<div class="row"><span>High</span><span>' + deg(dy.temperature_2m_max[d]) + '</span></div>'
-        + '<div class="row"><span>Low</span><span>' + deg(dy.temperature_2m_min[d]) + '</span></div>'
-        + '<div class="row"><span>Precip chance</span><span>' + pp + '%</span></div>'
-        + '<div class="row"><span>Snow</span><span>' + (snow > 0 ? snow.toFixed(1) + ' in' : '0') + '</span></div>'
-        + '<div class="row"><span>Gusts</span><span>' + Math.round(dy.wind_gusts_10m_max[d]) + ' mph</span></div>';
-      placeTip(host, tip, +el.getAttribute('x') + bw, +el.getAttribute('y'), W);
+      var hitEl = ev.target.closest ? ev.target.closest('.dhit') : null;
+      if (!hitEl) return;
+      var di = +hitEl.getAttribute('data-d'), t0 = D[0].time[di];
+      band.style.display = '';
+      band.setAttribute('x', f1(mL + gw * di));
+      var html = '<div><b>' + (di === 0 ? 'Today, ' : '') + dow(t0) + ' ' + mday(t0) + '</b></div>';
+      D.forEach(function (dy, ki) {
+        var w = wx(dy.weather_code[di]), snow = dy.snowfall_sum[di] || 0, pp = dy.precipitation_probability_max[di]; if (pp == null) pp = 0;
+        html += '<div class="row"><span class="nm"><i class="sw" style="background:' + RESORTS[ki].color + '"></i>' + esc(RESORTS[ki].short) + '</span>'
+          + '<span><b>' + deg(dy.temperature_2m_max[di]) + '</b> / ' + deg(dy.temperature_2m_min[di]) + '</span></div>'
+          + '<div class="row sub-row"><span>' + esc(w[0]) + ' · ' + pp + '% precip' + (snow > 0 ? ' · ' + snow.toFixed(1) + ' in snow' : '') + '</span></div>';
+      });
+      tip.innerHTML = html;
+      var rect = host.getBoundingClientRect(), sx = rect.width / W;
+      placeTip(tip, (mL + gw * di) * sx, (mL + gw * (di + 1)) * sx - 8, mT * sx, rect.width);
     }
-    host.addEventListener('pointermove', show);
-    host.addEventListener('pointerdown', show);
-    host.addEventListener('pointerleave', function () { tip.hidden = true; });
+    function hide() { band.style.display = 'none'; tip.hidden = true; }
+    el.addEventListener('pointermove', show);
+    el.addEventListener('pointerdown', show);
+    el.addEventListener('pointerleave', function (ev) { if (ev.pointerType === 'mouse') hide(); });
+    host._hide = hide;
   }
 
   function renderDailyLists() {
@@ -683,11 +770,13 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
         var gust = Math.round(d.wind_gusts_10m_max[i]);
         rows += '<div class="drow">' + icon(w[1], true)
           + '<span>' + (i === 0 ? 'Today' : dow(t)) + ' <span class="muted">' + mday(t) + '</span></span>'
-          + '<span class="cond-s">' + esc(w[0]) + '<span class="cond-extra">' + pp + '% precip' + (snow > 0 ? ' · ' + snow.toFixed(1) + ' in snow' : '') + ' · gusts ' + gust + ' mph</span></span>'
+          + '<span class="cond-s">' + esc(w[0]) + '</span>'
           + '<span class="num"><span class="hi">' + deg(d.temperature_2m_max[i]) + '</span> <span class="lo">' + deg(d.temperature_2m_min[i]) + '</span></span>'
           + '<span class="num precip">' + pp + '%</span>'
           + '<span class="num snow">' + (snow > 0 ? snow.toFixed(1) : '0') + '</span>'
-          + '<span class="num gust">' + gust + '</span></div>';
+          + '<span class="num gust">' + gust + '</span>'
+          + '<span class="extra">' + pp + '% precip' + (snow > 0 ? ' · ' + snow.toFixed(1) + ' in snow' : '') + ' · gusts ' + gust + ' mph</span>'
+          + '</div>';
       });
       wrap.innerHTML = rows;
       host.appendChild(wrap);
@@ -695,7 +784,7 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
   }
 
   function renderAll() {
-    state.derived = state.data ? state.data.map(derive) : null;
+    state.derived = state.data ? deriveAll(state.data) : null;
     renderCards();
     renderHourly(true);
     renderHourlyTable();
@@ -728,21 +817,21 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
     })).then(function (res) {
       res.forEach(function (j) { if (!j || !j.hourly || !j.daily || !j.current) throw new Error('Unexpected response'); });
       state.data = res; state.fetchedAt = Date.now(); state.stale = false;
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: state.fetchedAt, res: res })); } catch (e) {}
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: state.fetchedAt, sig: SIG, res: res })); } catch (e) {}
       hideNotice();
       renderAll();
       setStatus('Updated ' + fmtTimeNow(state.fetchedAt) + ' · Open-Meteo');
     }).catch(function () {
       var cached = null;
       try { cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (e) {}
-      if (cached && cached.res && cached.res.length === RESORTS.length) {
+      if (cached && cached.sig === SIG && cached.res && cached.res.length === RESORTS.length) {
         state.data = cached.res; state.fetchedAt = cached.at; state.stale = true;
         renderAll();
         setStatus('Saved ' + fmtTimeNow(cached.at) + ' (not live)');
         showNotice('Could not reach Open-Meteo just now, so this is the forecast saved at ' + fmtTimeNow(cached.at) + '. Press Refresh to try again.');
       } else {
         setStatus('Forecast unavailable');
-        showNotice('Could not load the forecast from Open-Meteo. If this file is open inside a preview or a restricted viewer, download it and open it directly in your browser. Otherwise check your connection and press Refresh.', true);
+        showNotice('Could not load the forecast from Open-Meteo. Check your connection and press Refresh.', true);
         renderAll();
       }
     }).then(function () {
@@ -757,17 +846,27 @@ th{color:var(--muted);font-weight:400;font-size:var(--fs-xs);text-transform:uppe
     try { localStorage.setItem(UNIT_KEY, u); } catch (e) {}
     $('#unitF').classList.toggle('is-on', u === 'F'); $('#unitF').setAttribute('aria-pressed', u === 'F' ? 'true' : 'false');
     $('#unitC').classList.toggle('is-on', u === 'C'); $('#unitC').setAttribute('aria-pressed', u === 'C' ? 'true' : 'false');
-    $('#ref28').textContent = deg(28) + ' snowmaking line';
-    $('#ref32').textContent = deg(32) + ' freezing';
+    renderLegends();
     if (state.data) renderAll();
   }
 
   /* Wiring */
+  document.documentElement.style.setProperty('--n', RESORTS.length);
+  $('#sub').textContent = RESORTS.map(function (r) { return r.name; }).join(' · ');
+  try { localStorage.removeItem(OLD_CACHE_KEY); } catch (e) {}
   try { var saved = localStorage.getItem(UNIT_KEY); if (saved === 'C' || saved === 'F') state.unit = saved; } catch (e) {}
   setUnit(state.unit);
   $('#unitF').addEventListener('click', function () { setUnit('F'); });
   $('#unitC').addEventListener('click', function () { setUnit('C'); });
   $('#refresh').addEventListener('click', load);
+
+  /* A tap outside a chart dismisses its tooltip (on touch screens it stays up after the finger lifts) */
+  document.addEventListener('pointerdown', function (ev) {
+    ['#hourly', '#daily'].forEach(function (sel) {
+      var h = $(sel);
+      if (h && h._hide && !h.contains(ev.target)) h._hide();
+    });
+  });
 
   if (window.ResizeObserver) {
     var raf = 0;
